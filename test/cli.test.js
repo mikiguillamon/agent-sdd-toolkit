@@ -118,11 +118,55 @@ test('adopt upgrades an existing git repository', async () => {
       path.join(directory, '.prettierignore'),
       'utf8'
     );
-    assert.match(agents, /agent-sdd:agents-contract:start/);
     assert.match(agents, /Source of truth/i);
+    assert.equal((agents.match(/# AGENTS\.md/g) || []).length, 1);
     assert.match(content, /AGENTS\.md/);
     assert.doesNotMatch(reviewer, /agent-sdd:adapter-claude:start/);
     assert.match(prettierignore, /\.specify\//);
+  } finally {
+    process.chdir(originalCwd);
+    await rm(directory, { recursive: true, force: true });
+  }
+});
+
+test('adopt preserves Spec Kit AGENTS stub and appends a formatted contract', async () => {
+  const directory = await mkdtemp(
+    path.join(os.tmpdir(), 'agent-sdd-adopt-speckit-')
+  );
+  const originalCwd = process.cwd();
+
+  try {
+    await writeFile(
+      path.join(directory, 'package.json'),
+      JSON.stringify({
+        name: 'fixture',
+        version: '1.0.0',
+        scripts: { test: 'node --test' }
+      })
+    );
+    process.chdir(directory);
+    await main(['new', '.', '--agents', 'generic', '--no-run-init']);
+    await writeFile(
+      path.join(directory, 'AGENTS.md'),
+      [
+        '<!-- SPECKIT START -->',
+        'For additional context about technologies to be used, project structure,',
+        'shell commands, and other important information, read the current plan',
+        '<!-- SPECKIT END -->',
+        ''
+      ].join('\n')
+    );
+    await main(['adopt', '--agents', 'claude', '--no-run-init']);
+    const agents = await readFile(path.join(directory, 'AGENTS.md'), 'utf8');
+    assert.match(agents, /<!-- SPECKIT START -->\n\nFor additional context/);
+    assert.match(
+      agents,
+      /<!-- agent-sdd:agents-contract:start -->\n\n# AGENTS\.md/
+    );
+    assert.match(
+      agents,
+      /explicit\s+approval\.\n\n<!-- agent-sdd:agents-contract:end -->/
+    );
   } finally {
     process.chdir(originalCwd);
     await rm(directory, { recursive: true, force: true });

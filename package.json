@@ -19,7 +19,7 @@
   "scripts": {
     "start": "node ./bin/agent-sdd.js",
     "doctor": "node ./bin/agent-sdd.js doctor --agents all --no-run-init",
-    "test": "node --test",
+    "test": "node --test --test-concurrency=1",
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",

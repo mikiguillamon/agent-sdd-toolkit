@@ -141,25 +141,23 @@ export async function ensureRepoAdapters(rootDirectory, agents, options = {}) {
     const files = REPO_TEMPLATE_MAP[agent] || [];
     for (const [templateName, destination] of files) {
       const filePath = path.join(rootDirectory, destination);
+      const template = await readTemplate(templateName);
+      const rendered = renderTemplate(template, {});
       const shouldMerge =
         options.merge &&
         options.mergeExistingFiles &&
         options.mergeExistingFiles.has(filePath);
 
+      if (shouldMerge && (await isToolkitOwnedAdapter(filePath, rendered))) {
+        await writeText(filePath, rendered, options);
+        continue;
+      }
+
       if (shouldMerge) {
-        const template = await readTemplate(templateName);
         appendManagedBlock(filePath, `adapter-${agent}`, template, options);
         continue;
       }
-      await writeTemplateToDestination(
-        templateName,
-        filePath,
-        {},
-        {
-          ...options,
-          force: options.force || (await exists(filePath))
-        }
-      );
+      await writeText(filePath, rendered, options);
     }
   }
 }
@@ -570,6 +568,12 @@ async function ensureAgentsFile(filePath, variables, options) {
   }
 
   let current = await readFile(filePath, 'utf8');
+
+  if (looksLikeToolkitOwnedAgents(current, rendered)) {
+    await writeText(filePath, rendered, options);
+    return;
+  }
+
   current = normalizeAgentsMarkdown(current);
 
   if (!options.dryRun) {
@@ -577,6 +581,11 @@ async function ensureAgentsFile(filePath, variables, options) {
   }
 
   appendManagedBlock(filePath, 'agents-contract', rendered, options);
+
+  if (!options.dryRun) {
+    const merged = await readFile(filePath, 'utf8');
+    await writeText(filePath, normalizeAgentsMarkdown(merged), options);
+  }
 }
 
 function normalizeAgentsMarkdown(content) {
@@ -588,5 +597,51 @@ function normalizeAgentsMarkdown(content) {
     /(?<!\n)\n<!-- SPECKIT END -->/g,
     '\n\n<!-- SPECKIT END -->'
   );
+  next = next.replace(
+    /<!-- agent-sdd:agents-contract:start -->\n(?!\n)/g,
+    '<!-- agent-sdd:agents-contract:start -->\n\n'
+  );
+  next = next.replace(
+    /(?<!\n)\n<!-- agent-sdd:agents-contract:end -->/g,
+    '\n\n<!-- agent-sdd:agents-contract:end -->'
+  );
   return next.trimEnd() + '\n';
+}
+
+async function isToolkitOwnedAdapter(filePath, rendered) {
+  if (!(await exists(filePath))) {
+    return false;
+  }
+
+  const current = await readFile(filePath, 'utf8');
+  if (current.includes('<!-- agent-sdd:adapter-')) {
+    return true;
+  }
+
+  return stripManagedAndSpecKit(current) === rendered.trim();
+}
+
+function looksLikeToolkitOwnedAgents(current, rendered) {
+  if (current.trim() === rendered.trim()) {
+    return true;
+  }
+
+  if (
+    current.includes('<!-- agent-sdd:agents-contract:start -->') &&
+    !current.includes('<!-- SPECKIT START -->')
+  ) {
+    return true;
+  }
+
+  return stripManagedAndSpecKit(current) === rendered.trim();
+}
+
+function stripManagedAndSpecKit(content) {
+  return content
+    .replace(/<!-- SPECKIT START -->[\s\S]*?<!-- SPECKIT END -->\n*/g, '')
+    .replace(
+      /<!-- agent-sdd:[\w-]+:start -->[\s\S]*?<!-- agent-sdd:[\w-]+:end -->\n*/g,
+      ''
+    )
+    .trim();
 }
