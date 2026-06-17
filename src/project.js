@@ -80,6 +80,7 @@ export async function ensureUniversalFiles(
   mode,
   options = {}
 ) {
+  const agentsPath = path.join(rootDirectory, 'AGENTS.md');
   const variables = {
     project: path.basename(rootDirectory) || 'Unknown',
     description: 'Unknown',
@@ -107,12 +108,7 @@ export async function ensureUniversalFiles(
     )
   };
 
-  await writeTemplateToDestination(
-    'universal/AGENTS.md',
-    path.join(rootDirectory, 'AGENTS.md'),
-    variables,
-    options
-  );
+  await ensureAgentsFile(agentsPath, variables, options);
   await writeTemplateToDestination(
     'universal/harness.config.json',
     path.join(rootDirectory, 'harness.config.json'),
@@ -560,4 +556,37 @@ function formatJsonForTemplate(value, indent) {
   const json = JSON.stringify(value, null, 2);
   const padding = ' '.repeat(indent);
   return json.replace(/\n/g, `\n${padding}`);
+}
+
+async function ensureAgentsFile(filePath, variables, options) {
+  const rendered = renderTemplate(
+    await readTemplate('universal/AGENTS.md'),
+    variables
+  );
+
+  if (!(await exists(filePath))) {
+    await writeText(filePath, rendered, options);
+    return;
+  }
+
+  let current = await readFile(filePath, 'utf8');
+  current = normalizeAgentsMarkdown(current);
+
+  if (!options.dryRun) {
+    await writeText(filePath, current, options);
+  }
+
+  appendManagedBlock(filePath, 'agents-contract', rendered, options);
+}
+
+function normalizeAgentsMarkdown(content) {
+  let next = content.replace(
+    /<!-- SPECKIT START -->\n(?!\n)/g,
+    '<!-- SPECKIT START -->\n\n'
+  );
+  next = next.replace(
+    /(?<!\n)\n<!-- SPECKIT END -->/g,
+    '\n\n<!-- SPECKIT END -->'
+  );
+  return next.trimEnd() + '\n';
 }

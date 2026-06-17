@@ -108,6 +108,7 @@ test('adopt upgrades an existing git repository', async () => {
     process.chdir(directory);
     await main(['new', '.', '--agents', 'generic', '--no-run-init']);
     await main(['adopt', '--agents', 'claude', '--no-run-init']);
+    const agents = await readFile(path.join(directory, 'AGENTS.md'), 'utf8');
     const content = await readFile(path.join(directory, 'CLAUDE.md'), 'utf8');
     const reviewer = await readFile(
       path.join(directory, '.claude', 'agents', 'reviewer.md'),
@@ -117,6 +118,8 @@ test('adopt upgrades an existing git repository', async () => {
       path.join(directory, '.prettierignore'),
       'utf8'
     );
+    assert.match(agents, /agent-sdd:agents-contract:start/);
+    assert.match(agents, /Source of truth/i);
     assert.match(content, /AGENTS\.md/);
     assert.doesNotMatch(reviewer, /agent-sdd:adapter-claude:start/);
     assert.match(prettierignore, /\.specify\//);
