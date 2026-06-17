@@ -109,7 +109,17 @@ test('adopt upgrades an existing git repository', async () => {
     await main(['new', '.', '--agents', 'generic', '--no-run-init']);
     await main(['adopt', '--agents', 'claude', '--no-run-init']);
     const content = await readFile(path.join(directory, 'CLAUDE.md'), 'utf8');
+    const reviewer = await readFile(
+      path.join(directory, '.claude', 'agents', 'reviewer.md'),
+      'utf8'
+    );
+    const prettierignore = await readFile(
+      path.join(directory, '.prettierignore'),
+      'utf8'
+    );
     assert.match(content, /AGENTS\.md/);
+    assert.doesNotMatch(reviewer, /agent-sdd:adapter-claude:start/);
+    assert.match(prettierignore, /\.specify\//);
   } finally {
     process.chdir(originalCwd);
     await rm(directory, { recursive: true, force: true });

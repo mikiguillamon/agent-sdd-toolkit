@@ -83,24 +83,21 @@ export async function ensureUniversalFiles(
   const variables = {
     project: path.basename(rootDirectory) || 'Unknown',
     description: 'Unknown',
-    detected_stack: JSON.stringify(context.stackInfo.stack, null, 4),
-    detected_package_managers: JSON.stringify(
+    detected_stack: formatJsonForTemplate(context.stackInfo.stack, 4),
+    detected_package_managers: formatJsonForTemplate(
       context.stackInfo.packageManagers,
-      null,
       4
     ),
-    detected_source_dirs: JSON.stringify(
+    detected_source_dirs: formatJsonForTemplate(
       await inferSourceDirs(rootDirectory),
-      null,
       4
     ),
-    detected_test_dirs: JSON.stringify(
+    detected_test_dirs: formatJsonForTemplate(
       await inferTestDirs(rootDirectory),
-      null,
       4
     ),
-    detected_ci: JSON.stringify(context.ci, null, 4),
-    commands_json: JSON.stringify(context.commands, null, 2),
+    detected_ci: formatJsonForTemplate(context.ci, 4),
+    commands_json: formatJsonForTemplate(context.commands, 2),
     features_json: JSON.stringify(
       {
         features: [baselineFeature(mode)]
@@ -140,6 +137,7 @@ export async function ensureUniversalFiles(
     variables,
     options
   );
+  await ensurePrettierIgnore(rootDirectory, options);
 }
 
 export async function ensureRepoAdapters(rootDirectory, agents, options = {}) {
@@ -147,12 +145,25 @@ export async function ensureRepoAdapters(rootDirectory, agents, options = {}) {
     const files = REPO_TEMPLATE_MAP[agent] || [];
     for (const [templateName, destination] of files) {
       const filePath = path.join(rootDirectory, destination);
-      if (options.merge && (await exists(filePath))) {
+      const shouldMerge =
+        options.merge &&
+        options.mergeExistingFiles &&
+        options.mergeExistingFiles.has(filePath);
+
+      if (shouldMerge) {
         const template = await readTemplate(templateName);
         appendManagedBlock(filePath, `adapter-${agent}`, template, options);
         continue;
       }
-      await writeTemplateToDestination(templateName, filePath, {}, options);
+      await writeTemplateToDestination(
+        templateName,
+        filePath,
+        {},
+        {
+          ...options,
+          force: options.force || (await exists(filePath))
+        }
+      );
     }
   }
 }
@@ -516,4 +527,37 @@ function shellEscape(value) {
 
 export function parseAgentOption(args) {
   return parseAgents(args);
+}
+
+export async function collectExistingRepoAdapterFiles(rootDirectory, agents) {
+  const existing = new Set();
+
+  for (const agent of agents) {
+    const files = REPO_TEMPLATE_MAP[agent] || [];
+    for (const [, destination] of files) {
+      const filePath = path.join(rootDirectory, destination);
+      if (await exists(filePath)) {
+        existing.add(filePath);
+      }
+    }
+  }
+
+  return existing;
+}
+
+async function ensurePrettierIgnore(rootDirectory, options) {
+  const target = path.join(rootDirectory, '.prettierignore');
+  const content = [
+    '.agents/',
+    '.claude/skills/',
+    '.specify/',
+    'harness.config.json'
+  ].join('\n');
+  appendManagedBlock(target, 'generated-ignore', content, options);
+}
+
+function formatJsonForTemplate(value, indent) {
+  const json = JSON.stringify(value, null, 2);
+  const padding = ' '.repeat(indent);
+  return json.replace(/\n/g, `\n${padding}`);
 }

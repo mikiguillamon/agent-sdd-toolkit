@@ -2,6 +2,7 @@ import { parseCliArgs } from '../utils/options.js';
 import { createReporter } from '../utils/log.js';
 import {
   collectProjectContext,
+  collectExistingRepoAdapterFiles,
   ensureBranchForAdopt,
   ensureRepoAdapters,
   ensureUniversalFiles,
@@ -18,6 +19,10 @@ export async function adoptProject(args) {
   const reporter = createReporter();
 
   const branchResult = await ensureBranchForAdopt(rootDirectory, options);
+  const existingRepoAdapterFiles = await collectExistingRepoAdapterFiles(
+    rootDirectory,
+    agents
+  );
   const specKit = await runSpecKit(rootDirectory, agents, 'adopt', options);
   const context = await collectProjectContext(rootDirectory);
 
@@ -32,7 +37,8 @@ export async function adoptProject(args) {
   await ensureRepoAdapters(rootDirectory, agents, {
     dryRun: options.dryRun,
     force: options.force,
-    merge: true
+    merge: true,
+    mergeExistingFiles: existingRepoAdapterFiles
   });
 
   const initResult = await runInitScript(rootDirectory, options);
