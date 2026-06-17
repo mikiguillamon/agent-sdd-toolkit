@@ -1,0 +1,54 @@
+{
+  "name": "agent_sdd_toolkit",
+  "version": "0.1.0",
+  "description": "CLI toolkit to bootstrap Specification-Driven Development workflows for AI agents.",
+  "type": "module",
+  "bin": {
+    "agent_sdd_toolkit": "./bin/agent-sdd-toolkit.js",
+    "agent-sdd-toolkit": "./bin/agent-sdd-toolkit.js"
+  },
+  "files": [
+    "bin/",
+    "src/",
+    "templates/",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "start": "node ./bin/agent-sdd-toolkit.js",
+    "test": "node --test",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "prepack": "npm test && npm run lint && npm run format:check",
+    "prepare:release": "npm version patch --no-git-tag-version"
+  },
+  "keywords": [
+    "sdd",
+    "specification-driven-development",
+    "ai-agents",
+    "cli",
+    "npx"
+  ],
+  "author": "mikiguillamon",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mikiguillamon/agent_sdd_toolkit.git"
+  },
+  "bugs": {
+    "url": "https://github.com/mikiguillamon/agent_sdd_toolkit/issues"
+  },
+  "homepage": "https://github.com/mikiguillamon/agent_sdd_toolkit#readme",
+  "engines": {
+    "node": ">=20"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.29.0",
+    "eslint": "^9.29.0",
+    "prettier": "^3.5.3"
+  }
+}
