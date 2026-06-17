@@ -91,6 +91,16 @@ npm install -g agent-sdd-toolkit
 agent-sdd doctor --agents all --no-run-init
 ```
 
+## Start here
+
+If you want the complete path from machine setup to GitHub-linked repository and
+day-to-day development, read [START_HERE.md](./START_HERE.md).
+
+Quick navigation:
+
+- [CHEATSHEET.md](./CHEATSHEET.md): short operational commands
+- [START_HERE.md](./START_HERE.md): end-to-end onboarding for new and active projects
+
 ## Commands
 
 ### `machine`
@@ -303,6 +313,84 @@ Design rules:
 - each skill has one universal definition plus target-specific adapters
 - non-Codex targets are exportable even when they are not natively installable yet
 
+## How to work with the agent
+
+In an adopted repository, you should not need to restate the whole setup each
+time. The agent should already use:
+
+- `AGENTS.md` as the source of truth
+- repo-local scaffold before inventing files or commands
+- SDD gates for feature work
+- `./init.sh` as the final verification gate
+
+Good request patterns:
+
+### Start a new feature
+
+```text
+I want to add this feature: [description].
+Follow the repo setup. First analyze the context and prepare spec, plan, and
+tasks. Do not implement until I approve them.
+```
+
+### Implement approved work
+
+```text
+Implement feature [name] following the repo setup.
+Review the existing spec, plan, and tasks first, then implement and validate
+with ./init.sh.
+```
+
+### Fix a bug
+
+```text
+Investigate and fix this bug: [description].
+Use the repo setup, explain the root cause first, then implement the fix and
+validate with the harness.
+```
+
+### Review a change
+
+```text
+Review this change following the repo rules.
+Focus on bugs, regressions, missing validation, and conflicts with AGENTS.md.
+```
+
+### Tight-scope improvement
+
+```text
+Improve this area: [description].
+Use the repo setup, keep scope tight, and validate at the end.
+```
+
+These prompts can be written in English or Spanish. The important part is to
+make clear:
+
+- the goal
+- whether you want spec first or implementation directly
+- whether it is a feature, bugfix, review, or refactor
+- whether the harness must be run at the end
+
+## Working with skills
+
+Think of skills as an optional behavior layer on top of the core toolkit.
+
+- `machine` prepares machine-global assets
+- `new` and `adopt` prepare repo-local scaffold
+- `skills install --agents codex` improves Codex behavior globally
+- `skills export` gives you portable artifacts for Claude, generic, Copilot,
+  Cursor, and Windsurf
+
+Recommended commands:
+
+```sh
+npx agent-sdd-toolkit skills list
+npx agent-sdd-toolkit skills validate
+npx agent-sdd-toolkit skills doctor --agents codex,claude
+npx agent-sdd-toolkit skills install --agents codex
+npx agent-sdd-toolkit skills export --agents claude,generic,cursor --output ./skills-export
+```
+
 ## Generated files in repositories
 
 The toolkit may generate or update:
@@ -360,7 +448,23 @@ npx agent-sdd-toolkit skills install --agents codex
 ```sh
 mkdir my-project
 cd my-project
+git init -b main
 npx agent-sdd-toolkit new --agents all
+```
+
+To create and link a GitHub repository with GitHub CLI:
+
+```sh
+gh auth status
+gh repo create my-project --private --source=. --remote=origin --push
+```
+
+If you prefer creating the repository on the GitHub website first:
+
+```sh
+git remote add origin git@github.com:<user-or-org>/<repo>.git
+git branch -M main
+git push -u origin main
 ```
 
 ### Adopt an existing project
@@ -369,6 +473,14 @@ npx agent-sdd-toolkit new --agents all
 git checkout -b chore/adopt-agent-sdd
 npx agent-sdd-toolkit adopt --agents all
 ./init.sh
+```
+
+If the existing project has no remote yet, create one on GitHub and link it:
+
+```sh
+git remote add origin git@github.com:<user-or-org>/<repo>.git
+git branch -M main
+git push -u origin main
 ```
 
 ### Check a repository safely
@@ -458,6 +570,10 @@ npm run lint
 npm run format:check
 npm pack --dry-run
 ```
+
+When using the toolkit on this repository itself, the repo-local scaffold is
+expected to be versioned, while `.agents/` remains machine-global and must stay
+out of the repository tree.
 
 ## Notes
 
