@@ -4,7 +4,8 @@
   "description": "Plug and play CLI to prepare machines and repositories for agent-agnostic Spec Driven Development with Spec Kit, AGENTS.md, AI agent adapters and executable harness validation.",
   "type": "module",
   "bin": {
-    "agent-sdd": "./bin/agent-sdd.js"
+    "agent-sdd": "./bin/agent-sdd.js",
+    "agent-sdd-toolkit": "./bin/agent-sdd.js"
   },
   "files": [
     "bin/",
