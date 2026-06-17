@@ -37,6 +37,11 @@ Options:
   --no-run-init     Skip ./init.sh execution
   --to <host>       Sync target host for sync
   --output <dir>    Export destination for skills export
+
+Cleanup on error:
+  Mutating commands attempt automatic cleanup by default when they fail.
+  Cleanup only covers toolkit-owned local/global changes from the current run.
+  External side effects from tools like git, specify, ssh, or rsync may remain.
 `;
 
 export async function main(args) {

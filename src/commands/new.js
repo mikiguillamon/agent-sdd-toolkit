@@ -2,6 +2,8 @@ import path from 'node:path';
 import { mkdir } from 'node:fs/promises';
 import { parseCliArgs } from '../utils/options.js';
 import { createReporter } from '../utils/log.js';
+import { maybeFail } from '../utils/failpoint.js';
+import { withRollback } from '../utils/withRollback.js';
 import {
   cleanupRepoLocalMachineArtifacts,
   collectProjectContext,
@@ -27,39 +29,53 @@ export async function newProject(args) {
     await mkdir(targetDirectory, { recursive: true });
   }
 
-  await initializeGitRepo(targetDirectory, options);
-  const specKit = await runSpecKit(targetDirectory, agents, 'new', options);
-  const context = await collectProjectContext(targetDirectory);
+  await withRollback(reporter, options, async (scopedOptions) => {
+    await initializeGitRepo(targetDirectory, scopedOptions);
+    const specKit = await runSpecKit(
+      targetDirectory,
+      agents,
+      'new',
+      scopedOptions
+    );
+    const context = await collectProjectContext(targetDirectory);
 
-  await ensureUniversalFiles(targetDirectory, context, 'new', {
-    dryRun: options.dryRun,
-    force: options.force
+    await ensureUniversalFiles(targetDirectory, context, 'new', {
+      dryRun: scopedOptions.dryRun,
+      force: scopedOptions.force,
+      transaction: scopedOptions.transaction
+    });
+    await ensureRepoAdapters(targetDirectory, agents, {
+      dryRun: scopedOptions.dryRun,
+      force: scopedOptions.force,
+      transaction: scopedOptions.transaction
+    });
+    const cleanupResult = await cleanupRepoLocalMachineArtifacts(
+      targetDirectory,
+      scopedOptions
+    );
+
+    maybeFail('after-new-scaffold');
+
+    const initResult = await runInitScript(targetDirectory, scopedOptions);
+
+    for (const warning of specKit.warnings) {
+      reporter.warn(warning);
+    }
+    if (cleanupResult.warning) {
+      reporter.warn(cleanupResult.warning);
+    }
+    if (initResult.ran && !initResult.ok) {
+      throw new Error('./init.sh reported blockers');
+    }
+
+    reporter.ok(`project initialized at ${targetDirectory}`);
+    reporter.ok(`agents configured: ${agents.join(', ')}`);
+    if (initResult.ran && initResult.ok) reporter.ok('./init.sh passed');
+    else if (scopedOptions.noRunInit)
+      reporter.info('./init.sh skipped by --no-run-init');
+
+    printNextPrompts(agents);
   });
-  await ensureRepoAdapters(targetDirectory, agents, {
-    dryRun: options.dryRun,
-    force: options.force
-  });
-  const cleanupResult = await cleanupRepoLocalMachineArtifacts(
-    targetDirectory,
-    options
-  );
-
-  const initResult = await runInitScript(targetDirectory, options);
-
-  for (const warning of specKit.warnings) {
-    reporter.warn(warning);
-  }
-  if (cleanupResult.warning) {
-    reporter.warn(cleanupResult.warning);
-  }
-  reporter.ok(`project initialized at ${targetDirectory}`);
-  reporter.ok(`agents configured: ${agents.join(', ')}`);
-  if (initResult.ran && initResult.ok) reporter.ok('./init.sh passed');
-  else if (options.noRunInit)
-    reporter.info('./init.sh skipped by --no-run-init');
-  else if (!initResult.ok) reporter.warn('./init.sh reported blockers');
-
-  printNextPrompts(agents);
 }
 
 function printNextPrompts(agents) {

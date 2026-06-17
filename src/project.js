@@ -1,5 +1,5 @@
 import path from 'node:path';
-import { chmod, readFile, rm } from 'node:fs/promises';
+import { chmod, readFile } from 'node:fs/promises';
 import { parseAgents, hasAgent } from './agents/parseAgents.js';
 import { SPEC_KIT_INTEGRATION } from './agents/integrationMatrix.js';
 import { detectCI } from './detect/detectCI.js';
@@ -8,7 +8,13 @@ import { detectExistingAgentFiles } from './detect/detectExistingAgentFiles.js';
 import { detectGit } from './detect/detectGit.js';
 import { detectStack } from './detect/detectStack.js';
 import { appendManagedBlock } from './fs/mergeTextFile.js';
-import { exists, readJson, writeText, copyWithBackup } from './fs/fileOps.js';
+import {
+  exists,
+  readJson,
+  writeText,
+  copyWithBackup,
+  removePath
+} from './fs/fileOps.js';
 import { renderTemplate } from './fs/renderTemplate.js';
 import { templatePath, homePath } from './utils/paths.js';
 import { commandExists, run } from './utils/exec.js';
@@ -36,29 +42,29 @@ const GLOBAL_TEMPLATE_MAP = {
   codex: [
     [
       'codex/skills/sdd-project-bootstrap/SKILL.md',
-      homePath('.agents', 'skills', 'sdd-project-bootstrap', 'SKILL.md')
+      () => homePath('.agents', 'skills', 'sdd-project-bootstrap', 'SKILL.md')
     ],
     [
       'codex/agents/project_explorer.toml',
-      homePath('.codex', 'agents', 'project_explorer.toml')
+      () => homePath('.codex', 'agents', 'project_explorer.toml')
     ],
     [
       'codex/agents/spec_author.toml',
-      homePath('.codex', 'agents', 'spec_author.toml')
+      () => homePath('.codex', 'agents', 'spec_author.toml')
     ],
     [
       'codex/agents/implementer.toml',
-      homePath('.codex', 'agents', 'implementer.toml')
+      () => homePath('.codex', 'agents', 'implementer.toml')
     ],
     [
       'codex/agents/reviewer.toml',
-      homePath('.codex', 'agents', 'reviewer.toml')
+      () => homePath('.codex', 'agents', 'reviewer.toml')
     ],
-    ['codex/config.toml', homePath('.codex', 'config.toml')]
+    ['codex/config.toml', () => homePath('.codex', 'config.toml')]
   ],
   claude: [
-    ['claude/CLAUDE.md', homePath('.claude', 'CLAUDE.md')],
-    ['claude/rules/sdd.md', homePath('.claude', 'rules', 'agent-sdd.md')]
+    ['claude/CLAUDE.md', () => homePath('.claude', 'CLAUDE.md')],
+    ['claude/rules/sdd.md', () => homePath('.claude', 'rules', 'agent-sdd.md')]
   ]
 };
 
@@ -154,7 +160,12 @@ export async function ensureRepoAdapters(rootDirectory, agents, options = {}) {
       }
 
       if (shouldMerge) {
-        appendManagedBlock(filePath, `adapter-${agent}`, template, options);
+        await appendManagedBlock(
+          filePath,
+          `adapter-${agent}`,
+          template,
+          options
+        );
         continue;
       }
       await writeText(filePath, rendered, options);
@@ -165,7 +176,8 @@ export async function ensureRepoAdapters(rootDirectory, agents, options = {}) {
 export async function ensureGlobalAdapters(agents, options = {}) {
   for (const agent of agents) {
     const files = GLOBAL_TEMPLATE_MAP[agent] || [];
-    for (const [templateName, destination] of files) {
+    for (const [templateName, destinationFactory] of files) {
+      const destination = destinationFactory();
       if (!options.force && (await exists(destination))) {
         continue;
       }
@@ -181,6 +193,10 @@ export async function runSpecKit(rootDirectory, agents, mode, options = {}) {
       warnings: ['specify not found; skipped Spec Kit initialization']
     };
   }
+
+  options.transaction?.noteExternalSideEffect(
+    'Spec Kit may have produced additional external side effects that were not fully tracked'
+  );
 
   const warnings = [];
 
@@ -221,7 +237,7 @@ export async function cleanupRepoLocalMachineArtifacts(
   if (await exists(agentsDirectory)) {
     cleaned.push('.agents/');
     if (!options.dryRun) {
-      await rm(agentsDirectory, { recursive: true, force: true });
+      await removePath(agentsDirectory, options);
     }
   }
 
@@ -299,7 +315,10 @@ export async function repairRepository(rootDirectory, agents, options = {}) {
       content.includes('agent-sdd-toolkit') ||
       content.length > 2000
     ) {
-      await copyWithBackup(target, `${target}.bak`, options);
+      await copyWithBackup(target, `${target}.bak`, {
+        ...options,
+        preserveOnRollback: true
+      });
       changes.push(
         `backup created for ${path.relative(rootDirectory, target)}`
       );
@@ -456,7 +475,8 @@ export async function syncGlobalAssets(host, agents, options = {}) {
   const sources = [];
   for (const agent of agents) {
     const mappings = GLOBAL_TEMPLATE_MAP[agent] || [];
-    for (const [, destination] of mappings) {
+    for (const [, destinationFactory] of mappings) {
+      const destination = destinationFactory();
       if (await exists(destination)) {
         sources.push(destination);
       }
@@ -473,6 +493,12 @@ export async function syncGlobalAssets(host, agents, options = {}) {
     const basename = path.basename(source);
     return `rsync -av ${shellEscape(source)} ${shellEscape(`${host}:~/agent-sdd-sync/${basename}`)}`;
   });
+
+  if (commands.length > 0) {
+    options.transaction?.noteExternalSideEffect(
+      `remote sync to ${host} may have partially applied before the failure`
+    );
+  }
 
   for (const command of commands) {
     run(command, { dryRun: options.dryRun, allowFailure: false });
@@ -567,7 +593,7 @@ async function ensurePrettierIgnore(rootDirectory, options) {
   const content = ['.claude/skills/', '.specify/', 'harness.config.json'].join(
     '\n'
   );
-  appendManagedBlock(target, 'generated-ignore', content, options);
+  await appendManagedBlock(target, 'generated-ignore', content, options);
 }
 
 function formatJsonForTemplate(value, indent) {
@@ -600,7 +626,7 @@ async function ensureAgentsFile(filePath, variables, options) {
     await writeText(filePath, current, options);
   }
 
-  appendManagedBlock(filePath, 'agents-contract', rendered, options);
+  await appendManagedBlock(filePath, 'agents-contract', rendered, options);
 
   if (!options.dryRun) {
     const merged = await readFile(filePath, 'utf8');

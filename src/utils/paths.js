@@ -10,7 +10,7 @@ export const templateRoot = path.join(repoRoot, 'templates');
 export const skillsPackRoot = path.join(repoRoot, 'agent-sdd-skills');
 
 export function homePath(...parts) {
-  return path.join(os.homedir(), ...parts);
+  return path.join(process.env.HOME || os.homedir(), ...parts);
 }
 
 export function templatePath(...parts) {

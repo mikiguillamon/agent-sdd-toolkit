@@ -66,6 +66,35 @@ Important rule:
 - `new` and `adopt` do not keep `.agents/` inside the repository as part of the final scaffold
 - `machine` and `skills install` are the supported ways to populate `~/.agents/...`
 
+## Cleanup on error
+
+Mutating commands try to clean up after themselves automatically when a run
+fails:
+
+- `machine`
+- `new`
+- `adopt`
+- `repair`
+- `sync`
+- `skills install`
+- `skills export`
+
+The cleanup contract is intentionally narrow:
+
+- it rolls back toolkit-owned files and directories created or modified during
+  the current execution
+- it restores previous content when the toolkit rewrote an existing file
+- it preserves `repair` backups such as `.bak`
+- it does not promise full rollback for external side effects from `git`,
+  `specify`, `ssh`, or `rsync`
+- remote sync is reported clearly, but not rolled back automatically
+
+Typical messages are:
+
+- `WARN: command failed; attempting cleanup of toolkit-owned changes`
+- `OK: cleanup completed for toolkit-owned changes`
+- `WARN: cleanup completed partially; some external side effects may remain`
+
 ## Supported agents
 
 - `codex`
@@ -120,6 +149,7 @@ What it does:
 - manages machine-global assets such as `~/.agents/...` and `~/.codex/...`
 - does not touch the current repository
 - works in diagnose-first mode by default
+- rolls back toolkit-owned global changes if the command fails mid-run
 
 Use `--dry-run` to preview behavior:
 
@@ -147,6 +177,7 @@ What it does:
 - removes repo-local `.agents/` artifacts if an external integration generated them
 - writes `feature_list.json` with the initial pending feature
 - optionally runs `./init.sh`
+- rolls back toolkit-owned scaffold from the current run if the command fails
 
 Useful option:
 
@@ -174,6 +205,7 @@ What it does:
 - merges adapter content safely instead of replacing blindly
 - removes repo-local `.agents/` artifacts if an external integration generated them
 - records blockers in `progress/current.md` when bootstrap verification fails
+- rolls back toolkit-owned changes from the current run if the command fails
 
 Use `--dry-run` first on important repositories.
 
@@ -213,6 +245,8 @@ What it does:
 - creates `.bak` backups for sensitive files before rewriting them
 - rewrites adapters toward pointer-style files that reference `AGENTS.md`
 - runs a `doctor` pass afterward
+- restores toolkit-owned rewrites if the command fails, while keeping `.bak`
+  backups
 
 Use `--dry-run` to inspect the changes before writing them.
 
@@ -242,6 +276,9 @@ What it does not sync:
 - sessions
 - private history
 
+If `sync` fails, the toolkit cleans up any local staging it created, but it does
+not promise rollback on the remote host.
+
 ### `skills`
 
 Manage the optional `agent-sdd-skills` pack.
@@ -263,6 +300,7 @@ What it does:
 - checks whether installable targets are already present
 - installs Codex skills globally
 - exports best-effort artifacts for Claude, generic, Copilot, Cursor, and Windsurf
+- cleans up toolkit-owned install/export output from the current run if it fails
 
 Support model:
 
@@ -380,6 +418,7 @@ Think of skills as an optional behavior layer on top of the core toolkit.
 - `skills install --agents codex` improves Codex behavior globally
 - `skills export` gives you portable artifacts for Claude, generic, Copilot,
   Cursor, and Windsurf
+- failing runs clean up toolkit-owned output from that execution
 
 Recommended commands:
 

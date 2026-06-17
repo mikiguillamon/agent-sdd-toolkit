@@ -31,6 +31,8 @@ What this does:
   `~/.claude/...`
 - does not modify the current repository
 - keeps repo-local scaffold separate from machine-global assets
+- if the command fails, it tries to roll back toolkit-owned global changes from
+  that run
 
 ## 2. Create or adopt a repository
 
@@ -56,6 +58,15 @@ If the repository is important or unfamiliar, preview first:
 ```sh
 npx agent-sdd-toolkit adopt --agents codex,claude --dry-run
 ```
+
+If `new` or `adopt` fails, the toolkit now attempts cleanup automatically for
+toolkit-owned scaffold from that execution. This is helpful, but keep the real
+scope in mind:
+
+- it restores files and directories the toolkit created or rewrote
+- it does not promise full rollback for side effects from `git` or `specify`
+- if remote operations are involved later, rollback is local-only unless stated
+  otherwise
 
 ## 3. Create and link a GitHub repository
 
@@ -202,6 +213,7 @@ Practical model:
 - `new` or `adopt` prepares the repo
 - `skills install` strengthens Codex behavior globally
 - `skills export` gives you portable assets for other AI environments
+- if a mutating command fails, cleanup targets toolkit-owned changes only
 
 ## 8. Normal day-to-day workflow
 
@@ -228,3 +240,5 @@ For each new piece of work:
 - Keep `.agents/` out of the repository.
 - Use `machine` for global assets and `new` or `adopt` for repo-local assets.
 - Run `./init.sh` before closing work.
+- Read warnings after failures: they tell you whether cleanup was complete or
+  whether external side effects may remain.

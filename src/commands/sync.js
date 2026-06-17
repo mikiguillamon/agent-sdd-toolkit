@@ -1,6 +1,7 @@
 import { parseCliArgs } from '../utils/options.js';
 import { createReporter } from '../utils/log.js';
 import { parseAgentOption, syncGlobalAssets } from '../project.js';
+import { withRollback } from '../utils/withRollback.js';
 
 export async function sync(args) {
   const options = parseCliArgs(args);
@@ -11,6 +12,8 @@ export async function sync(args) {
     throw new Error('sync requires --to <host>');
   }
 
-  const commands = await syncGlobalAssets(options.to, agents, options);
-  reporter.ok(`prepared ${commands.length} sync commands for ${options.to}`);
+  await withRollback(reporter, options, async (scopedOptions) => {
+    const commands = await syncGlobalAssets(options.to, agents, scopedOptions);
+    reporter.ok(`prepared ${commands.length} sync commands for ${options.to}`);
+  });
 }

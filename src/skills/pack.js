@@ -1,7 +1,8 @@
-import { cp, mkdir, readFile, readdir, rm } from 'node:fs/promises';
+import { cp, readFile, readdir, rm } from 'node:fs/promises';
 import path from 'node:path';
+import { maybeFail } from '../utils/failpoint.js';
 import { homePath, skillsPackRoot } from '../utils/paths.js';
-import { exists } from '../fs/fileOps.js';
+import { ensureParent, exists } from '../fs/fileOps.js';
 
 const FRONTMATTER_RE =
   /^---\nname: ([a-z0-9-]+)\ndescription: ([^\n]+)\n---\n/s;
@@ -116,6 +117,7 @@ export async function diagnoseSkillsPackTargets(agents) {
 export async function installSkillsPack(agents, options = {}) {
   const manifest = await loadSkillsManifest();
   const messages = [];
+  let installCount = 0;
 
   for (const agent of agents) {
     if (!INSTALLABLE_TARGETS.has(agent)) {
@@ -138,7 +140,10 @@ export async function installSkillsPack(agents, options = {}) {
         continue;
       }
       if (!options.dryRun) {
-        await mkdir(destinationRoot, { recursive: true });
+        await ensureParent(path.join(destinationRoot, '.keep'), options);
+        if (options.transaction) {
+          await options.transaction.snapshotPath(destination);
+        }
         if (options.force && (await exists(destination))) {
           await rm(destination, { recursive: true, force: true });
         }
@@ -146,6 +151,10 @@ export async function installSkillsPack(agents, options = {}) {
           recursive: true,
           force: options.force
         });
+      }
+      installCount += 1;
+      if (installCount === 1) {
+        maybeFail('after-skills-install-write');
       }
       messages.push({
         level: 'ok',
@@ -160,6 +169,7 @@ export async function installSkillsPack(agents, options = {}) {
 export async function exportSkillsPack(agents, outputDirectory, options = {}) {
   const manifest = await loadSkillsManifest();
   const messages = [];
+  let exportCount = 0;
 
   for (const agent of agents) {
     const fileName = TARGET_FILE_MAP[agent];
@@ -178,13 +188,20 @@ export async function exportSkillsPack(agents, outputDirectory, options = {}) {
       const destination = path.join(outputDirectory, agent, skill.name);
 
       if (!options.dryRun) {
-        await mkdir(destination, { recursive: true });
+        if (options.transaction) {
+          await options.transaction.snapshotPath(destination);
+        }
+        await ensureParent(path.join(destination, 'SKILL.md'), options);
         await cp(sourceSkill, path.join(destination, 'SKILL.md'), {
           force: true
         });
         await cp(sourceAgent, path.join(destination, fileName), {
           force: true
         });
+      }
+      exportCount += 1;
+      if (exportCount === 1) {
+        maybeFail('after-skills-export-write');
       }
       messages.push({
         level: 'ok',

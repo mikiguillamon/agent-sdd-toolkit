@@ -1,15 +1,19 @@
-import fs from 'node:fs';
-import path from 'node:path';
+import { readFile } from 'node:fs/promises';
+import { exists, writeText } from './fileOps.js';
 
-export function appendManagedBlock(file, blockName, content, options = {}) {
-  const { dryRun = false } = options;
+export async function appendManagedBlock(
+  file,
+  blockName,
+  content,
+  options = {}
+) {
   const start = `<!-- agent-sdd:${blockName}:start -->`;
   const end = `<!-- agent-sdd:${blockName}:end -->`;
   const block = `${start}\n${content.trim()}\n${end}\n`;
 
   let current = '';
-  if (fs.existsSync(file)) {
-    current = fs.readFileSync(file, 'utf8');
+  if (await exists(file)) {
+    current = await readFile(file, 'utf8');
   }
 
   if (current.includes(start) && current.includes(end)) {
@@ -17,17 +21,16 @@ export function appendManagedBlock(file, blockName, content, options = {}) {
       `${escapeRegExp(start)}[\\s\\S]*?${escapeRegExp(end)}\\n?`
     );
     const next = current.replace(pattern, block);
-    if (!dryRun) {
-      fs.writeFileSync(file, next);
+    if (!options.dryRun) {
+      await writeText(file, next, options);
     }
     return { changed: next !== current, mode: 'replaced' };
   }
 
   const next = current.trim() ? `${current.trim()}\n\n${block}` : `${block}`;
 
-  if (!dryRun) {
-    fs.mkdirSync(path.dirname(file), { recursive: true });
-    fs.writeFileSync(file, next);
+  if (!options.dryRun) {
+    await writeText(file, next, options);
   }
 
   return { changed: true, mode: 'appended' };

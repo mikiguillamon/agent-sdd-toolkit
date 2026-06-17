@@ -8,6 +8,7 @@
 - `doctor` is the safest first command
 - repo-local scaffold stays in the repo
 - `.agents/` belongs to the machine, not to the repository
+- mutating commands clean up toolkit-owned changes automatically on failure
 
 ## Main commands
 
@@ -83,6 +84,13 @@ npx agent-sdd-toolkit adopt --agents all
 - `--no-run-init`
 - `--to <host>`
 - `--output <dir>`
+
+## Cleanup on error
+
+- `machine`, `new`, `adopt`, `repair`, `sync`, `skills install`, and `skills export` try rollback automatically if they fail
+- cleanup only covers toolkit-owned changes from the current run
+- side effects from `git`, `specify`, `ssh`, or `rsync` may still remain and will be reported as warnings
+- `repair` keeps `.bak` backups even if the run fails
 
 ## How to ask the agent
 
@@ -163,6 +171,7 @@ Important:
 - `new` or `adopt`: prepare repo-local scaffold
 - `skills install --agents codex`: strengthen Codex globally
 - `skills export`: prepare portable artifacts for other AI environments
+- if one of those mutating steps fails, the toolkit tries to restore only what it clearly owns
 
 ## Release flow
 

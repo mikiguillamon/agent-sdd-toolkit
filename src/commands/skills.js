@@ -1,6 +1,7 @@
 import path from 'node:path';
 import { parseCliArgs } from '../utils/options.js';
 import { createReporter } from '../utils/log.js';
+import { withRollback } from '../utils/withRollback.js';
 import { parseAgentOption } from '../project.js';
 import {
   diagnoseSkillsPackTargets,
@@ -42,14 +43,17 @@ export async function skills(args) {
       break;
     }
     case 'install': {
-      const result = await installSkillsPack(agents, {
-        dryRun: options.dryRun,
-        force: options.force
+      await withRollback(reporter, options, async (scopedOptions) => {
+        const result = await installSkillsPack(agents, {
+          dryRun: scopedOptions.dryRun,
+          force: scopedOptions.force,
+          transaction: scopedOptions.transaction
+        });
+        for (const message of result.messages) {
+          if (message.level === 'warn') reporter.warn(message.text);
+          else reporter.ok(message.text);
+        }
       });
-      for (const message of result.messages) {
-        if (message.level === 'warn') reporter.warn(message.text);
-        else reporter.ok(message.text);
-      }
       break;
     }
     case 'export': {
@@ -57,14 +61,17 @@ export async function skills(args) {
         process.cwd(),
         options.output || 'agent-sdd-skills-export'
       );
-      const result = await exportSkillsPack(agents, outputDirectory, {
-        dryRun: options.dryRun,
-        force: options.force
+      await withRollback(reporter, options, async (scopedOptions) => {
+        const result = await exportSkillsPack(agents, outputDirectory, {
+          dryRun: scopedOptions.dryRun,
+          force: scopedOptions.force,
+          transaction: scopedOptions.transaction
+        });
+        for (const message of result.messages) {
+          if (message.level === 'warn') reporter.warn(message.text);
+          else reporter.ok(message.text);
+        }
       });
-      for (const message of result.messages) {
-        if (message.level === 'warn') reporter.warn(message.text);
-        else reporter.ok(message.text);
-      }
       break;
     }
     default:

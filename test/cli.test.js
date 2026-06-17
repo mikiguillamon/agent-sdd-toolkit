@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { spawnSync } from 'node:child_process';
 import { mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
@@ -58,8 +59,8 @@ test('appendManagedBlock appends and replaces managed sections', async () => {
   const file = path.join(directory, 'CLAUDE.md');
 
   try {
-    appendManagedBlock(file, 'adapter-claude', 'alpha');
-    appendManagedBlock(file, 'adapter-claude', 'beta');
+    await appendManagedBlock(file, 'adapter-claude', 'alpha');
+    await appendManagedBlock(file, 'adapter-claude', 'beta');
     const content = await readFile(file, 'utf8');
     assert.match(content, /beta/);
     assert.doesNotMatch(content, /alpha/);
@@ -67,6 +68,16 @@ test('appendManagedBlock appends and replaces managed sections', async () => {
     await rm(directory, { recursive: true, force: true });
   }
 });
+
+async function withFailpoint(label, fn) {
+  const previous = process.env.AGENT_SDD_FAILPOINT;
+  process.env.AGENT_SDD_FAILPOINT = label;
+  try {
+    await fn();
+  } finally {
+    process.env.AGENT_SDD_FAILPOINT = previous;
+  }
+}
 
 test('new creates the universal scaffold and adapters', async () => {
   const directory = await mkdtemp(path.join(os.tmpdir(), 'agent-sdd-new-'));
@@ -240,6 +251,79 @@ test('adopt preserves Spec Kit AGENTS stub and appends a formatted contract', as
   }
 });
 
+test('new rolls back toolkit-owned scaffold after failure', async () => {
+  const directory = await mkdtemp(
+    path.join(os.tmpdir(), 'agent-sdd-new-rollback-')
+  );
+
+  try {
+    await assert.rejects(
+      withFailpoint('after-new-scaffold', async () => {
+        await main(['new', directory, '--agents', 'claude', '--no-run-init']);
+      }),
+      /Injected failpoint/
+    );
+
+    assert.equal(await exists(path.join(directory, 'AGENTS.md')), false);
+    assert.equal(await exists(path.join(directory, 'CLAUDE.md')), false);
+    assert.equal(await exists(path.join(directory, '.claude')), false);
+    assert.equal(await exists(path.join(directory, '.specify')), false);
+    assert.equal(
+      await exists(path.join(directory, 'harness.config.json')),
+      false
+    );
+    assert.equal(await exists(path.join(directory, 'init.sh')), false);
+    assert.equal(
+      await exists(path.join(directory, 'feature_list.json')),
+      false
+    );
+    assert.equal(await exists(path.join(directory, 'scripts')), false);
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
+});
+
+test('adopt rolls back toolkit-owned changes and preserves user files', async () => {
+  const directory = await mkdtemp(
+    path.join(os.tmpdir(), 'agent-sdd-adopt-rollback-')
+  );
+  const originalCwd = process.cwd();
+
+  try {
+    await writeFile(
+      path.join(directory, 'package.json'),
+      JSON.stringify({
+        name: 'fixture',
+        version: '1.0.0',
+        scripts: { test: 'node --test' }
+      })
+    );
+    await writeFile(path.join(directory, 'README.md'), 'user content\n');
+    process.chdir(directory);
+    spawnSync('git', ['init', '-b', 'main'], { cwd: directory });
+
+    await assert.rejects(
+      withFailpoint('after-adopt-scaffold', async () => {
+        await main(['adopt', '--agents', 'codex,claude', '--no-run-init']);
+      }),
+      /Injected failpoint/
+    );
+
+    assert.equal(
+      await exists(path.join(directory, 'harness.config.json')),
+      false
+    );
+    assert.equal(await exists(path.join(directory, 'init.sh')), false);
+    assert.equal(
+      await readFile(path.join(directory, 'README.md'), 'utf8'),
+      'user content\n'
+    );
+  } finally {
+    process.chdir(originalCwd);
+    await rm(directory, { recursive: true, force: true });
+  }
+});
+
 test('repair creates backups for legacy files', async () => {
   const directory = await mkdtemp(path.join(os.tmpdir(), 'agent-sdd-repair-'));
   const originalCwd = process.cwd();
@@ -288,6 +372,28 @@ test('sync supports dry-run planning', async () => {
     process.chdir(originalCwd);
     await rm(home, { recursive: true, force: true });
     await rm(directory, { recursive: true, force: true });
+  }
+});
+
+test('machine rolls back global adapters after failure', async () => {
+  const home = await mkdtemp(path.join(os.tmpdir(), 'agent-sdd-machine-home-'));
+  const originalHome = process.env.HOME;
+
+  try {
+    process.env.HOME = home;
+    await assert.rejects(
+      withFailpoint('after-machine-global-adapters', async () => {
+        await main(['machine', '--agents', 'codex,claude']);
+      }),
+      /Injected failpoint/
+    );
+
+    assert.equal(await exists(path.join(home, '.agents')), false);
+    assert.equal(await exists(path.join(home, '.codex')), false);
+    assert.equal(await exists(path.join(home, '.claude')), false);
+  } finally {
+    process.env.HOME = originalHome;
+    await rm(home, { recursive: true, force: true });
   }
 });
 
@@ -348,5 +454,95 @@ test('skills install writes codex skills into a temporary HOME', async () => {
   } finally {
     process.env.HOME = originalHome;
     await rm(home, { recursive: true, force: true });
+  }
+});
+
+test('skills install rolls back partial global install after failure', async () => {
+  const home = await mkdtemp(path.join(os.tmpdir(), 'agent-sdd-skills-home-'));
+  const originalHome = process.env.HOME;
+
+  try {
+    process.env.HOME = home;
+    await assert.rejects(
+      withFailpoint('after-skills-install-write', async () => {
+        await main(['skills', 'install', '--agents', 'codex']);
+      }),
+      /Injected failpoint/
+    );
+
+    assert.equal(await exists(path.join(home, '.agents')), false);
+  } finally {
+    process.env.HOME = originalHome;
+    await rm(home, { recursive: true, force: true });
+  }
+});
+
+test('skills export rolls back partial export after failure', async () => {
+  const directory = await mkdtemp(
+    path.join(os.tmpdir(), 'agent-sdd-skills-export-rollback-')
+  );
+  const originalCwd = process.cwd();
+
+  try {
+    process.chdir(directory);
+    await assert.rejects(
+      withFailpoint('after-skills-export-write', async () => {
+        await main([
+          'skills',
+          'export',
+          '--agents',
+          'claude,generic',
+          '--output',
+          'out'
+        ]);
+      }),
+      /Injected failpoint/
+    );
+
+    assert.equal(await exists(path.join(directory, 'out')), false);
+  } finally {
+    process.chdir(originalCwd);
+    await rm(directory, { recursive: true, force: true });
+  }
+});
+
+test('repair rolls back rewrites and preserves backups after failure', async () => {
+  const directory = await mkdtemp(
+    path.join(os.tmpdir(), 'agent-sdd-repair-rollback-')
+  );
+  const originalCwd = process.cwd();
+
+  try {
+    await mkdir(path.join(directory, '.github'), { recursive: true });
+    await writeFile(path.join(directory, 'AGENTS.md'), '# AGENTS');
+    await writeFile(
+      path.join(directory, '.github', 'copilot-instructions.md'),
+      'legacy agent_sdd_toolkit content'
+    );
+    process.chdir(directory);
+
+    await assert.rejects(
+      withFailpoint('after-repair-rewrites', async () => {
+        await main(['repair', '--agents', 'copilot', '--no-run-init']);
+      }),
+      /Injected failpoint/
+    );
+
+    assert.equal(
+      await readFile(
+        path.join(directory, '.github', 'copilot-instructions.md'),
+        'utf8'
+      ),
+      'legacy agent_sdd_toolkit content'
+    );
+    assert.equal(
+      await exists(
+        path.join(directory, '.github', 'copilot-instructions.md.bak')
+      ),
+      true
+    );
+  } finally {
+    process.chdir(originalCwd);
+    await rm(directory, { recursive: true, force: true });
   }
 });

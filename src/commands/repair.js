@@ -1,5 +1,7 @@
 import { parseCliArgs } from '../utils/options.js';
 import { createReporter } from '../utils/log.js';
+import { maybeFail } from '../utils/failpoint.js';
+import { withRollback } from '../utils/withRollback.js';
 import { doctor } from './doctor.js';
 import { parseAgentOption, repairRepository } from '../project.js';
 
@@ -8,14 +10,22 @@ export async function repair(args) {
   const agents = parseAgentOption(args);
   const reporter = createReporter();
 
-  const changes = await repairRepository(process.cwd(), agents, options);
-  if (changes.length === 0) {
-    reporter.info('no legacy issues detected');
-  } else {
-    for (const change of changes) {
-      reporter.ok(change);
+  await withRollback(reporter, options, async (scopedOptions) => {
+    const changes = await repairRepository(
+      process.cwd(),
+      agents,
+      scopedOptions
+    );
+    if (changes.length === 0) {
+      reporter.info('no legacy issues detected');
+    } else {
+      for (const change of changes) {
+        reporter.ok(change);
+      }
     }
-  }
 
-  await doctor(args.filter((arg) => arg !== '--dry-run'));
+    maybeFail('after-repair-rewrites');
+
+    await doctor(args.filter((arg) => arg !== '--dry-run'));
+  });
 }
