@@ -1,0 +1,5 @@
+interface:
+  display_name: 'Token Discipline'
+  short_description: 'Reduce verbosity and token usage while preserving correctness.'
+  icon: 'Code'
+  color: 'blue'

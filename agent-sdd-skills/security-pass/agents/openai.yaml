@@ -1,0 +1,5 @@
+interface:
+  display_name: 'Security Pass'
+  short_description: 'Run a focused security review before merge or release.'
+  icon: 'Shield'
+  color: 'red'

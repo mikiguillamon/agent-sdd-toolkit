@@ -1,0 +1,5 @@
+interface:
+  display_name: 'Docs Writer'
+  short_description: 'Write concise operational docs without inventing facts.'
+  icon: 'Book'
+  color: 'purple'

@@ -1,0 +1,128 @@
+{
+  "name": "agent-sdd-skills",
+  "version": "1.0.0",
+  "targets": {
+    "codex": {
+      "state": "installable",
+      "destination": "~/.agents/skills"
+    },
+    "claude": {
+      "state": "exportable",
+      "destination": ".claude/"
+    },
+    "generic": {
+      "state": "exportable",
+      "destination": "portable markdown"
+    },
+    "copilot": {
+      "state": "exportable",
+      "destination": "reference snippets"
+    },
+    "cursor": {
+      "state": "exportable",
+      "destination": "reference snippets"
+    },
+    "windsurf": {
+      "state": "exportable",
+      "destination": "reference snippets"
+    }
+  },
+  "skills": [
+    {
+      "name": "token-discipline",
+      "shortDescription": "Reduce token usage and output noise during repo work.",
+      "targets": {
+        "codex": "installable",
+        "claude": "exportable",
+        "generic": "exportable",
+        "copilot": "exportable",
+        "cursor": "exportable",
+        "windsurf": "exportable"
+      }
+    },
+    {
+      "name": "spec-driven-development",
+      "shortDescription": "Enforce SDD gates, specs, and approval flow before implementation.",
+      "targets": {
+        "codex": "installable",
+        "claude": "exportable",
+        "generic": "exportable",
+        "copilot": "exportable",
+        "cursor": "exportable",
+        "windsurf": "exportable"
+      }
+    },
+    {
+      "name": "repo-cartographer",
+      "shortDescription": "Create compact repo maps to save future context.",
+      "targets": {
+        "codex": "installable",
+        "claude": "exportable",
+        "generic": "exportable",
+        "copilot": "exportable",
+        "cursor": "exportable",
+        "windsurf": "exportable"
+      }
+    },
+    {
+      "name": "minimal-implementer",
+      "shortDescription": "Implement the smallest correct change for approved work.",
+      "targets": {
+        "codex": "installable",
+        "claude": "exportable",
+        "generic": "exportable",
+        "copilot": "exportable",
+        "cursor": "exportable",
+        "windsurf": "exportable"
+      }
+    },
+    {
+      "name": "senior-code-reviewer",
+      "shortDescription": "Run a high-signal senior review focused on real issues.",
+      "targets": {
+        "codex": "installable",
+        "claude": "exportable",
+        "generic": "exportable",
+        "copilot": "exportable",
+        "cursor": "exportable",
+        "windsurf": "exportable"
+      }
+    },
+    {
+      "name": "security-pass",
+      "shortDescription": "Perform a focused security review before merge or release.",
+      "targets": {
+        "codex": "installable",
+        "claude": "exportable",
+        "generic": "exportable",
+        "copilot": "exportable",
+        "cursor": "exportable",
+        "windsurf": "exportable"
+      }
+    },
+    {
+      "name": "docs-writer",
+      "shortDescription": "Write compact operational docs without inventing facts.",
+      "targets": {
+        "codex": "installable",
+        "claude": "exportable",
+        "generic": "exportable",
+        "copilot": "exportable",
+        "cursor": "exportable",
+        "windsurf": "exportable"
+      }
+    },
+    {
+      "name": "ux-polish-reviewer",
+      "shortDescription": "Review UX, states, clarity, and polish without bloating scope.",
+      "targets": {
+        "codex": "installable",
+        "claude": "exportable",
+        "generic": "exportable",
+        "copilot": "exportable",
+        "cursor": "exportable",
+        "windsurf": "exportable"
+      }
+    }
+  ]
+}

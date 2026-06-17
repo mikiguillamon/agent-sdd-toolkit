@@ -1,0 +1,5 @@
+interface:
+  display_name: 'Repo Cartographer'
+  short_description: 'Map structure, commands, tests, and conventions without reading the whole repo.'
+  icon: 'Map'
+  color: 'teal'

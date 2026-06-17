@@ -7,6 +7,7 @@ import { adoptProject } from './commands/adopt.js';
 import { doctor } from './commands/doctor.js';
 import { repair } from './commands/repair.js';
 import { sync } from './commands/sync.js';
+import { skills } from './commands/skills.js';
 
 const packageRoot = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -22,6 +23,11 @@ Usage:
   agent-sdd doctor --agents <list>
   agent-sdd repair --agents <list>
   agent-sdd sync --to <host> --agents <list>
+  agent-sdd skills list
+  agent-sdd skills validate
+  agent-sdd skills doctor --agents <list>
+  agent-sdd skills install --agents <list>
+  agent-sdd skills export --agents <list> [--output <dir>]
 
 Options:
   --agents <list>   codex,claude,copilot,cursor,windsurf,generic,all
@@ -30,6 +36,7 @@ Options:
   --force           Overwrite toolkit-managed files
   --no-run-init     Skip ./init.sh execution
   --to <host>       Sync target host for sync
+  --output <dir>    Export destination for skills export
 `;
 
 export async function main(args) {
@@ -68,6 +75,9 @@ export async function main(args) {
       break;
     case 'sync':
       await sync(subcommandArgs);
+      break;
+    case 'skills':
+      await skills(subcommandArgs);
       break;
     default:
       throw new Error(`Unknown command: ${command}\n\n${helpText}`);

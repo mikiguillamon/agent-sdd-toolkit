@@ -8,6 +8,7 @@ import { detectCommands } from '../src/detect/detectCommands.js';
 import { detectStack } from '../src/detect/detectStack.js';
 import { parseAgents } from '../src/agents/parseAgents.js';
 import { appendManagedBlock } from '../src/fs/mergeTextFile.js';
+import { validateSkillsPack } from '../src/skills/pack.js';
 
 test('parseAgents supports all', () => {
   assert.deepEqual(parseAgents(['--agents', 'all']), [
@@ -163,5 +164,65 @@ test('sync supports dry-run planning', async () => {
     process.chdir(originalCwd);
     await rm(home, { recursive: true, force: true });
     await rm(directory, { recursive: true, force: true });
+  }
+});
+
+test('skills pack validates successfully', async () => {
+  const result = await validateSkillsPack();
+  assert.equal(result.ok, true);
+});
+
+test('skills list and validate commands run', async () => {
+  await main(['skills', 'list']);
+  await main(['skills', 'validate']);
+  assert.ok(true);
+});
+
+test('skills install and export support dry-run flows', async () => {
+  const home = await mkdtemp(path.join(os.tmpdir(), 'agent-sdd-skills-home-'));
+  const directory = await mkdtemp(
+    path.join(os.tmpdir(), 'agent-sdd-skills-export-')
+  );
+  const originalHome = process.env.HOME;
+  const originalCwd = process.cwd();
+
+  try {
+    process.env.HOME = home;
+    process.chdir(directory);
+    await main(['skills', 'install', '--agents', 'codex', '--dry-run']);
+    await main([
+      'skills',
+      'export',
+      '--agents',
+      'claude,generic,cursor',
+      '--output',
+      'out',
+      '--dry-run'
+    ]);
+    await main(['skills', 'doctor', '--agents', 'codex,claude']);
+    assert.ok(true);
+  } finally {
+    process.env.HOME = originalHome;
+    process.chdir(originalCwd);
+    await rm(home, { recursive: true, force: true });
+    await rm(directory, { recursive: true, force: true });
+  }
+});
+
+test('skills install writes codex skills into a temporary HOME', async () => {
+  const home = await mkdtemp(path.join(os.tmpdir(), 'agent-sdd-skills-home-'));
+  const originalHome = process.env.HOME;
+
+  try {
+    process.env.HOME = home;
+    await main(['skills', 'install', '--agents', 'codex']);
+    const installed = await readFile(
+      path.join(home, '.agents', 'skills', 'token-discipline', 'SKILL.md'),
+      'utf8'
+    );
+    assert.match(installed, /Token Discipline/);
+  } finally {
+    process.env.HOME = originalHome;
+    await rm(home, { recursive: true, force: true });
   }
 });

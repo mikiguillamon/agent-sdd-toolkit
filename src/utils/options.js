@@ -6,6 +6,7 @@ export function parseCliArgs(args = []) {
     force: false,
     noRunInit: false,
     to: undefined,
+    output: undefined,
     positionals: []
   };
 
@@ -20,6 +21,12 @@ export function parseCliArgs(args = []) {
 
     if (value === '--to') {
       options.to = args[index + 1];
+      index += 1;
+      continue;
+    }
+
+    if (value === '--output') {
+      options.output = args[index + 1];
       index += 1;
       continue;
     }

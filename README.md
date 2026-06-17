@@ -26,6 +26,10 @@ The toolkit helps with four practical problems:
 3. Adopting SDD in an existing repository without blindly overwriting files
 4. Diagnosing, repairing, and syncing the non-sensitive parts of the setup
 
+It also includes an optional capability pack:
+
+5. Installing or exporting a reusable multi-agent skills pack for Codex-first environments
+
 The generated repository model is:
 
 - `AGENTS.md` defines the shared operating contract
@@ -198,6 +202,37 @@ What it does not sync:
 - sessions
 - private history
 
+### `skills`
+
+Manage the optional `agent-sdd-skills` pack.
+
+Examples:
+
+```sh
+npx agent-sdd-toolkit skills list
+npx agent-sdd-toolkit skills validate
+npx agent-sdd-toolkit skills doctor --agents codex,claude
+npx agent-sdd-toolkit skills install --agents codex
+npx agent-sdd-toolkit skills export --agents claude,generic,cursor --output ./skills-export
+```
+
+What it does:
+
+- lists the bundled skills and their support state by target
+- validates the pack structure and metadata
+- checks whether installable targets are already present
+- installs Codex skills globally
+- exports best-effort artifacts for Claude, generic, Copilot, Cursor, and Windsurf
+
+Support model:
+
+- `codex`: installable
+- `claude`: exportable
+- `generic`: exportable
+- `copilot`: exportable
+- `cursor`: exportable
+- `windsurf`: exportable
+
 ## Main options
 
 - `--agents <list>`: comma-separated list or `all`
@@ -206,6 +241,29 @@ What it does not sync:
 - `--no-run-init`: skip `./init.sh`
 - `--yes`: reserved for install-allowed flows such as future machine enhancements
 - `--to <host>`: sync destination for `sync`
+- `--output <dir>`: export destination for `skills export`
+
+## Skills pack
+
+The repository includes `agent-sdd-skills/`, a Codex-first but AI-ready pack of small operational skills.
+
+Included skills:
+
+- `token-discipline`
+- `spec-driven-development`
+- `repo-cartographer`
+- `minimal-implementer`
+- `senior-code-reviewer`
+- `security-pass`
+- `docs-writer`
+- `ux-polish-reviewer`
+
+Design rules:
+
+- `AGENTS.md` remains the source of truth
+- skills are optional accelerators, not replacements for repo policy
+- each skill has one universal definition plus target-specific adapters
+- non-Codex targets are exportable even when they are not natively installable yet
 
 ## Generated files in repositories
 
@@ -238,6 +296,17 @@ Depending on the selected agents, `machine` may create:
 - `~/.claude/CLAUDE.md`
 - `~/.claude/rules/agent-sdd.md`
 
+With `skills install --agents codex`, the toolkit may also create:
+
+- `~/.agents/skills/token-discipline/`
+- `~/.agents/skills/spec-driven-development/`
+- `~/.agents/skills/repo-cartographer/`
+- `~/.agents/skills/minimal-implementer/`
+- `~/.agents/skills/senior-code-reviewer/`
+- `~/.agents/skills/security-pass/`
+- `~/.agents/skills/docs-writer/`
+- `~/.agents/skills/ux-polish-reviewer/`
+
 ## Recommended usage flow
 
 ### Prepare a machine
@@ -245,6 +314,7 @@ Depending on the selected agents, `machine` may create:
 ```sh
 npx agent-sdd-toolkit machine --agents codex,claude,copilot,cursor,generic
 npx agent-sdd-toolkit doctor --agents all --no-run-init
+npx agent-sdd-toolkit skills install --agents codex
 ```
 
 ### Create a new project
@@ -318,6 +388,12 @@ To copy global non-sensitive assets from local to remote:
 
 ```sh
 npx agent-sdd-toolkit sync --to devbox --agents codex,claude
+```
+
+To export skills for other AI environments:
+
+```sh
+npx agent-sdd-toolkit skills export --agents claude,generic,copilot,cursor,windsurf --output ./skills-export
 ```
 
 ## Publish and release flow

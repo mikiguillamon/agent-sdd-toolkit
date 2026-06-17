@@ -1,0 +1,5 @@
+interface:
+  display_name: 'UX Polish Reviewer'
+  short_description: 'Review UX clarity, states, copy, responsiveness, and polish.'
+  icon: 'Sparkles'
+  color: 'pink'

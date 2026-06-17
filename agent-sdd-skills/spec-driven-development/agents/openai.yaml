@@ -1,0 +1,5 @@
+interface:
+  display_name: 'Spec Driven Development'
+  short_description: 'Guide features through SDD gates and approval before implementation.'
+  icon: 'FileCode'
+  color: 'green'

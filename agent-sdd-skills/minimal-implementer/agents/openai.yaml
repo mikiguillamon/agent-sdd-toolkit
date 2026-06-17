@@ -1,0 +1,5 @@
+interface:
+  display_name: 'Minimal Implementer'
+  short_description: 'Implement the smallest safe change for approved work.'
+  icon: 'Code'
+  color: 'orange'

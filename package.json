@@ -8,9 +8,11 @@
     "agent-sdd-toolkit": "./bin/agent-sdd.js"
   },
   "files": [
+    "agent-sdd-skills/",
     "bin/",
     "src/",
     "templates/",
+    "CHEATSHEET.md",
     "README.md",
     "LICENSE"
   ],

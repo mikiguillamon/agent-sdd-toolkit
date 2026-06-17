@@ -7,6 +7,7 @@ const __dirname = path.dirname(__filename);
 
 export const repoRoot = path.resolve(__dirname, '..', '..');
 export const templateRoot = path.join(repoRoot, 'templates');
+export const skillsPackRoot = path.join(repoRoot, 'agent-sdd-skills');
 
 export function homePath(...parts) {
   return path.join(os.homedir(), ...parts);

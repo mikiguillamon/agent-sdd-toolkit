@@ -5,6 +5,7 @@ import {
   ensureGlobalAdapters,
   parseAgentOption
 } from '../project.js';
+import { diagnoseSkillsPackTargets } from '../skills/pack.js';
 
 export async function machine(args) {
   const options = parseCliArgs(args);
@@ -29,4 +30,11 @@ export async function machine(args) {
   });
 
   reporter.ok(`global adapters checked for: ${agents.join(', ')}`);
+
+  const skillChecks = await diagnoseSkillsPackTargets(agents);
+  for (const check of skillChecks) {
+    if (!check.ok && check.level === 'warn') {
+      reporter.info(check.message);
+    }
+  }
 }

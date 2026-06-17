@@ -16,6 +16,10 @@ npx agent-sdd-toolkit adopt --agents all
 npx agent-sdd-toolkit doctor --agents all --no-run-init
 npx agent-sdd-toolkit repair --agents all
 npx agent-sdd-toolkit sync --to devbox --agents codex,claude
+npx agent-sdd-toolkit skills list
+npx agent-sdd-toolkit skills validate
+npx agent-sdd-toolkit skills install --agents codex
+npx agent-sdd-toolkit skills export --agents claude,generic --output ./skills-export
 ```
 
 ## Safe first steps
@@ -32,6 +36,7 @@ npx agent-sdd-toolkit adopt --agents all --dry-run
 ```sh
 npx agent-sdd-toolkit machine --agents codex,claude,copilot,cursor,generic
 npx agent-sdd-toolkit doctor --agents all --no-run-init
+npx agent-sdd-toolkit skills install --agents codex
 ```
 
 ### New project
@@ -57,6 +62,7 @@ npx agent-sdd-toolkit adopt --agents all
 - `--force`
 - `--no-run-init`
 - `--to <host>`
+- `--output <dir>`
 
 ## What gets created in a repo
 
@@ -74,6 +80,14 @@ npx agent-sdd-toolkit adopt --agents all
 - `~/.codex/config.toml`
 - `~/.claude/CLAUDE.md`
 - `~/.claude/rules/agent-sdd.md`
+- `~/.agents/skills/token-discipline/`
+- `~/.agents/skills/spec-driven-development/`
+- `~/.agents/skills/repo-cartographer/`
+- `~/.agents/skills/minimal-implementer/`
+- `~/.agents/skills/senior-code-reviewer/`
+- `~/.agents/skills/security-pass/`
+- `~/.agents/skills/docs-writer/`
+- `~/.agents/skills/ux-polish-reviewer/`
 
 ## Release flow
 
@@ -94,3 +108,4 @@ git push origin main --follow-tags
 - `doctor`: inspect and diagnose
 - `repair`: fix older setup
 - `sync`: copy non-sensitive global assets to remote
+- `skills`: list, validate, install, export, and inspect the optional skills pack
