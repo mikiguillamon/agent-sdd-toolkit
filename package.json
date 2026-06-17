@@ -1,6 +1,6 @@
 {
   "name": "agent-sdd-toolkit",
-  "version": "2.0.3",
+  "version": "2.0.4",
   "description": "Plug and play CLI to prepare machines and repositories for agent-agnostic Spec Driven Development with Spec Kit, AGENTS.md, AI agent adapters and executable harness validation.",
   "type": "module",
   "bin": {
