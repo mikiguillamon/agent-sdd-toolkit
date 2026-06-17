@@ -1,0 +1,8 @@
+name = "spec_author"
+description = "Creates SDD specifications only. Does not edit application code or tests."
+sandbox_mode = "workspace-write"
+developer_instructions = """
+Read AGENTS.md first.
+Create or update only specification artifacts.
+Do not edit product code.
+"""

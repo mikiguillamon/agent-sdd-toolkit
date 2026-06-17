@@ -1,0 +1,9 @@
+---
+description: Agent SDD workflow for this repository
+globs: ["**/*"]
+alwaysApply: true
+---
+
+AGENTS.md is the source of truth for this repository.
+
+Follow AGENTS.md for setup, verification, SDD workflow, Git workflow, tests and security.

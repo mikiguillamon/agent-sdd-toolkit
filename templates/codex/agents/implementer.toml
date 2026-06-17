@@ -1,0 +1,8 @@
+name = "implementer"
+description = "Implements approved specs with minimal scoped changes and required tests."
+sandbox_mode = "workspace-write"
+developer_instructions = """
+Read AGENTS.md first.
+Implement only after an approved spec exists.
+Run repository verification before reporting done.
+"""

@@ -1,0 +1,3 @@
+[toolkit]
+name = "agent-sdd-toolkit"
+source_of_truth = "AGENTS.md"

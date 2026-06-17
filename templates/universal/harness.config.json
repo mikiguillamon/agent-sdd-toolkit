@@ -1,0 +1,13 @@
+{
+  "project": "{{project}}",
+  "description": "{{description}}",
+  "detected": {
+    "stack": {{detected_stack}},
+    "package_managers": {{detected_package_managers}},
+    "source_dirs": {{detected_source_dirs}},
+    "test_dirs": {{detected_test_dirs}},
+    "ci": {{detected_ci}}
+  },
+  "commands": {{commands_json}},
+  "notes": []
+}

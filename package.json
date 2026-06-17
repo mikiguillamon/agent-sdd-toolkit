@@ -1,11 +1,10 @@
 {
-  "name": "agent_sdd_toolkit",
-  "version": "0.1.0",
-  "description": "CLI toolkit to bootstrap Specification-Driven Development workflows for AI agents.",
+  "name": "agent-sdd-toolkit",
+  "version": "1.0.0",
+  "description": "Plug and play CLI to prepare machines and repositories for agent-agnostic Spec Driven Development with Spec Kit, AGENTS.md, AI agent adapters and executable harness validation.",
   "type": "module",
   "bin": {
-    "agent_sdd_toolkit": "./bin/agent-sdd-toolkit.js",
-    "agent-sdd-toolkit": "./bin/agent-sdd-toolkit.js"
+    "agent-sdd": "./bin/agent-sdd.js"
   },
   "files": [
     "bin/",
@@ -15,31 +14,35 @@
     "LICENSE"
   ],
   "scripts": {
-    "start": "node ./bin/agent-sdd-toolkit.js",
+    "start": "node ./bin/agent-sdd.js",
+    "doctor": "node ./bin/agent-sdd.js doctor --agents all --no-run-init",
     "test": "node --test",
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "prepack": "npm test && npm run lint && npm run format:check",
-    "prepare:release": "npm version patch --no-git-tag-version"
+    "prepack": "npm test && npm run lint && npm run format:check"
   },
   "keywords": [
-    "sdd",
-    "specification-driven-development",
+    "agents",
     "ai-agents",
-    "cli",
-    "npx"
+    "spec-kit",
+    "sdd",
+    "codex",
+    "claude-code",
+    "copilot",
+    "cursor",
+    "harness"
   ],
   "author": "mikiguillamon",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/mikiguillamon/agent_sdd_toolkit.git"
+    "url": "git+https://github.com/mikiguillamon/agent-sdd-toolkit.git"
   },
   "bugs": {
-    "url": "https://github.com/mikiguillamon/agent_sdd_toolkit/issues"
+    "url": "https://github.com/mikiguillamon/agent-sdd-toolkit/issues"
   },
-  "homepage": "https://github.com/mikiguillamon/agent_sdd_toolkit#readme",
+  "homepage": "https://github.com/mikiguillamon/agent-sdd-toolkit#readme",
   "engines": {
     "node": ">=20"
   },

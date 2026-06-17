@@ -1,28 +1,39 @@
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { machine } from './commands/machine.js';
+import { newProject } from './commands/new.js';
+import { adoptProject } from './commands/adopt.js';
+import { doctor } from './commands/doctor.js';
+import { repair } from './commands/repair.js';
+import { sync } from './commands/sync.js';
 
 const packageRoot = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
   '..'
 );
 
-const helpText = `agent_sdd_toolkit
+const helpText = `Agent SDD Toolkit
 
 Usage:
-  npx agent_sdd_toolkit init [directory] [--force]
-  npx agent_sdd_toolkit --help
-  npx agent_sdd_toolkit --version
-
-Commands:
-  init       Create a Specification-Driven Development workspace for AI agents.
+  agent-sdd machine --agents <list>
+  agent-sdd new [directory] --agents <list>
+  agent-sdd adopt --agents <list>
+  agent-sdd doctor --agents <list>
+  agent-sdd repair --agents <list>
+  agent-sdd sync --to <host> --agents <list>
 
 Options:
-  --force    Overwrite existing toolkit files.
+  --agents <list>   codex,claude,copilot,cursor,windsurf,generic,all
+  --yes             Allow installations when a command supports it
+  --dry-run         Print actions without writing files
+  --force           Overwrite toolkit-managed files
+  --no-run-init     Skip ./init.sh execution
+  --to <host>       Sync target host for sync
 `;
 
 export async function main(args) {
-  const [command, maybeDirectory, ...rest] = args;
+  const [command] = args;
 
   if (!command || command === '--help' || command === '-h') {
     console.log(helpText.trimEnd());
@@ -37,54 +48,28 @@ export async function main(args) {
     return;
   }
 
-  if (command === 'init') {
-    const targetDirectory =
-      maybeDirectory && !maybeDirectory.startsWith('-') ? maybeDirectory : '.';
-    const flags = new Set([maybeDirectory, ...rest].filter(Boolean));
-    await initWorkspace(path.resolve(process.cwd(), targetDirectory), {
-      force: flags.has('--force')
-    });
-    return;
-  }
+  const subcommandArgs = args.slice(1);
 
-  throw new Error(`Unknown command: ${command}\n\n${helpText}`);
-}
-
-export async function initWorkspace(targetDirectory, options = {}) {
-  const templateDirectory = path.join(
-    packageRoot,
-    'templates',
-    'sdd-workspace'
-  );
-  const files = ['AGENTS.md', 'docs/spec.md', 'docs/plan.md', 'docs/tasks.md'];
-
-  await mkdir(targetDirectory, { recursive: true });
-
-  for (const relativePath of files) {
-    const source = path.join(templateDirectory, relativePath);
-    const destination = path.join(targetDirectory, relativePath);
-    await mkdir(path.dirname(destination), { recursive: true });
-
-    if (!options.force && (await exists(destination))) {
-      throw new Error(
-        `Refusing to overwrite ${relativePath}. Re-run with --force to replace it.`
-      );
-    }
-
-    await writeFile(destination, await readFile(source, 'utf8'), 'utf8');
-  }
-
-  console.log(`SDD workspace ready at ${targetDirectory}`);
-}
-
-async function exists(filePath) {
-  try {
-    await readFile(filePath);
-    return true;
-  } catch (error) {
-    if (error && error.code === 'ENOENT') {
-      return false;
-    }
-    throw error;
+  switch (command) {
+    case 'machine':
+      await machine(subcommandArgs);
+      break;
+    case 'new':
+      await newProject(subcommandArgs);
+      break;
+    case 'adopt':
+      await adoptProject(subcommandArgs);
+      break;
+    case 'doctor':
+      await doctor(subcommandArgs);
+      break;
+    case 'repair':
+      await repair(subcommandArgs);
+      break;
+    case 'sync':
+      await sync(subcommandArgs);
+      break;
+    default:
+      throw new Error(`Unknown command: ${command}\n\n${helpText}`);
   }
 }
