@@ -39,6 +39,33 @@ The generated repository model is:
 - `feature_list.json` tracks bootstrap or feature lifecycle state
 - agent adapters point back to `AGENTS.md` instead of duplicating the whole methodology
 
+## Repo vs machine
+
+The toolkit separates repository-local scaffold from machine-global agent
+assets.
+
+Repository-local outputs created by `new` and `adopt` include:
+
+- `AGENTS.md`
+- `CLAUDE.md`
+- `.claude/`
+- `.specify/`
+- `harness.config.json`
+- `init.sh`
+- `feature_list.json`
+- `scripts/validate_harness.py`
+
+Machine-global outputs created by `machine` and `skills install` include:
+
+- `~/.agents/...`
+- `~/.codex/...`
+- `~/.claude/...`
+
+Important rule:
+
+- `new` and `adopt` do not keep `.agents/` inside the repository as part of the final scaffold
+- `machine` and `skills install` are the supported ways to populate `~/.agents/...`
+
 ## Supported agents
 
 - `codex`
@@ -80,6 +107,7 @@ What it does:
 
 - checks `git`, `node`, `npm`, `python3`, `uv`, and `specify`
 - installs or refreshes supported global adapters for selected agents
+- manages machine-global assets such as `~/.agents/...` and `~/.codex/...`
 - does not touch the current repository
 - works in diagnose-first mode by default
 
@@ -106,6 +134,7 @@ What it does:
 - attempts Spec Kit integrations for selected agents
 - creates the universal SDD layer
 - creates repository-local adapters
+- removes repo-local `.agents/` artifacts if an external integration generated them
 - writes `feature_list.json` with the initial pending feature
 - optionally runs `./init.sh`
 
@@ -133,6 +162,7 @@ What it does:
 - detects stack, commands, CI, and existing agent files
 - writes or updates the universal SDD layer
 - merges adapter content safely instead of replacing blindly
+- removes repo-local `.agents/` artifacts if an external integration generated them
 - records blockers in `progress/current.md` when bootstrap verification fails
 
 Use `--dry-run` first on important repositories.
@@ -232,6 +262,14 @@ Support model:
 - `copilot`: exportable
 - `cursor`: exportable
 - `windsurf`: exportable
+
+## Dogfooding
+
+This repository is intended to use `agent-sdd-toolkit` on itself.
+
+That means the repo-local scaffold is expected to be versioned here, while
+`.agents/` remains a machine-global concern and is not part of the repository
+contract.
 
 ## Main options
 

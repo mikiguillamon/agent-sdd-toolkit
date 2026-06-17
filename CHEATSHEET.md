@@ -6,6 +6,8 @@
 - adapters point back to `AGENTS.md`
 - `init.sh` is the verification gate
 - `doctor` is the safest first command
+- repo-local scaffold stays in the repo
+- `.agents/` belongs to the machine, not to the repository
 
 ## Main commands
 
@@ -67,11 +69,18 @@ npx agent-sdd-toolkit adopt --agents all
 ## What gets created in a repo
 
 - `AGENTS.md`
+- `CLAUDE.md`
+- `.claude/`
+- `.specify/`
 - `harness.config.json`
 - `init.sh`
 - `scripts/validate_harness.py`
 - `feature_list.json`
 - agent-specific adapter files
+
+Important:
+
+- `new` and `adopt` do not keep `.agents/` inside the repository
 
 ## What `machine` may create globally
 

@@ -8,6 +8,7 @@ import { detectCommands } from '../src/detect/detectCommands.js';
 import { detectStack } from '../src/detect/detectStack.js';
 import { parseAgents } from '../src/agents/parseAgents.js';
 import { appendManagedBlock } from '../src/fs/mergeTextFile.js';
+import { exists } from '../src/fs/fileOps.js';
 import { validateSkillsPack } from '../src/skills/pack.js';
 
 test('parseAgents supports all', () => {
@@ -87,6 +88,22 @@ test('new creates the universal scaffold and adapters', async () => {
     assert.match(agents, /source of truth/i);
     assert.equal(harness.features, undefined);
     assert.match(claude, /@AGENTS.md/);
+    assert.equal(await exists(path.join(directory, '.agents')), false);
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
+});
+
+test('new with codex cleans repo-local .agents output from Spec Kit', async () => {
+  const directory = await mkdtemp(
+    path.join(os.tmpdir(), 'agent-sdd-new-codex-')
+  );
+
+  try {
+    await main(['new', directory, '--agents', 'codex', '--no-run-init']);
+    assert.equal(await exists(path.join(directory, '.agents')), false);
+    assert.equal(await exists(path.join(directory, 'AGENTS.md')), true);
+    assert.equal(await exists(path.join(directory, 'feature_list.json')), true);
   } finally {
     await rm(directory, { recursive: true, force: true });
   }
@@ -123,6 +140,55 @@ test('adopt upgrades an existing git repository', async () => {
     assert.match(content, /AGENTS\.md/);
     assert.doesNotMatch(reviewer, /agent-sdd:adapter-claude:start/);
     assert.match(prettierignore, /\.specify\//);
+    assert.equal(await exists(path.join(directory, '.agents')), false);
+  } finally {
+    process.chdir(originalCwd);
+    await rm(directory, { recursive: true, force: true });
+  }
+});
+
+test('adopt with codex cleans .agents and stays idempotent on repeat', async () => {
+  const directory = await mkdtemp(
+    path.join(os.tmpdir(), 'agent-sdd-adopt-codex-')
+  );
+  const originalCwd = process.cwd();
+
+  try {
+    await writeFile(
+      path.join(directory, 'package.json'),
+      JSON.stringify({
+        name: 'fixture',
+        version: '1.0.0',
+        scripts: { test: 'node --test' }
+      })
+    );
+    process.chdir(directory);
+    await main(['new', '.', '--agents', 'generic', '--no-run-init']);
+    await main(['adopt', '--agents', 'codex,claude', '--no-run-init']);
+    const firstAgents = await readFile(
+      path.join(directory, 'AGENTS.md'),
+      'utf8'
+    );
+    const firstClaude = await readFile(
+      path.join(directory, 'CLAUDE.md'),
+      'utf8'
+    );
+
+    assert.equal(await exists(path.join(directory, '.agents')), false);
+
+    await main(['adopt', '--agents', 'codex,claude', '--no-run-init']);
+    const secondAgents = await readFile(
+      path.join(directory, 'AGENTS.md'),
+      'utf8'
+    );
+    const secondClaude = await readFile(
+      path.join(directory, 'CLAUDE.md'),
+      'utf8'
+    );
+
+    assert.equal(await exists(path.join(directory, '.agents')), false);
+    assert.equal(firstAgents, secondAgents);
+    assert.equal(firstClaude, secondClaude);
   } finally {
     process.chdir(originalCwd);
     await rm(directory, { recursive: true, force: true });
@@ -167,6 +233,7 @@ test('adopt preserves Spec Kit AGENTS stub and appends a formatted contract', as
       agents,
       /explicit\s+approval\.\n\n<!-- agent-sdd:agents-contract:end -->/
     );
+    assert.equal(await exists(path.join(directory, '.agents')), false);
   } finally {
     process.chdir(originalCwd);
     await rm(directory, { recursive: true, force: true });

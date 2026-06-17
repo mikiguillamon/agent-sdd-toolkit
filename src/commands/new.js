@@ -3,6 +3,7 @@ import { mkdir } from 'node:fs/promises';
 import { parseCliArgs } from '../utils/options.js';
 import { createReporter } from '../utils/log.js';
 import {
+  cleanupRepoLocalMachineArtifacts,
   collectProjectContext,
   ensureRepoAdapters,
   ensureUniversalFiles,
@@ -38,11 +39,18 @@ export async function newProject(args) {
     dryRun: options.dryRun,
     force: options.force
   });
+  const cleanupResult = await cleanupRepoLocalMachineArtifacts(
+    targetDirectory,
+    options
+  );
 
   const initResult = await runInitScript(targetDirectory, options);
 
   for (const warning of specKit.warnings) {
     reporter.warn(warning);
+  }
+  if (cleanupResult.warning) {
+    reporter.warn(cleanupResult.warning);
   }
   reporter.ok(`project initialized at ${targetDirectory}`);
   reporter.ok(`agents configured: ${agents.join(', ')}`);

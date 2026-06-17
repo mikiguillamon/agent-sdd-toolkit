@@ -1,6 +1,7 @@
 import { parseCliArgs } from '../utils/options.js';
 import { createReporter } from '../utils/log.js';
 import {
+  cleanupRepoLocalMachineArtifacts,
   collectProjectContext,
   collectExistingRepoAdapterFiles,
   ensureBranchForAdopt,
@@ -40,6 +41,10 @@ export async function adoptProject(args) {
     merge: true,
     mergeExistingFiles: existingRepoAdapterFiles
   });
+  const cleanupResult = await cleanupRepoLocalMachineArtifacts(
+    rootDirectory,
+    options
+  );
 
   const initResult = await runInitScript(rootDirectory, options);
   if (initResult.ran && !initResult.ok) {
@@ -53,6 +58,9 @@ export async function adoptProject(args) {
   reporter.ok(`adopted repository on branch ${branchResult.branch}`);
   for (const warning of specKit.warnings) {
     reporter.warn(warning);
+  }
+  if (cleanupResult.warning) {
+    reporter.warn(cleanupResult.warning);
   }
   if (initResult.ran && initResult.ok) reporter.ok('./init.sh passed');
   else if (!initResult.ok) reporter.warn('./init.sh reported blockers');

@@ -1,0 +1,39 @@
+{
+  "project": "agent-sdd-toolkit",
+  "description": "Unknown",
+  "detected": {
+    "stack": [
+      "node"
+    ],
+    "package_managers": [
+      "npm"
+    ],
+    "source_dirs": [
+      "src"
+    ],
+    "test_dirs": [
+      "test"
+    ],
+    "ci": [
+      "github_actions"
+    ]
+  },
+  "commands": {
+    "setup": [
+      "npm install"
+    ],
+    "format_check": [
+      "npm run format:check"
+    ],
+    "lint": [
+      "npm run lint"
+    ],
+    "typecheck": [],
+    "test": [
+      "npm run test"
+    ],
+    "build": [],
+    "smoke": []
+  },
+  "notes": []
+}

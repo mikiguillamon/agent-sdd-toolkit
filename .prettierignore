@@ -1,2 +1,8 @@
 templates/universal/feature_list.json
 templates/universal/harness.config.json
+
+<!-- agent-sdd:generated-ignore:start -->
+.claude/skills/
+.specify/
+harness.config.json
+<!-- agent-sdd:generated-ignore:end -->

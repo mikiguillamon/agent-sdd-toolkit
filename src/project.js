@@ -1,5 +1,5 @@
 import path from 'node:path';
-import { chmod, readFile } from 'node:fs/promises';
+import { chmod, readFile, rm } from 'node:fs/promises';
 import { parseAgents, hasAgent } from './agents/parseAgents.js';
 import { SPEC_KIT_INTEGRATION } from './agents/integrationMatrix.js';
 import { detectCI } from './detect/detectCI.js';
@@ -209,6 +209,29 @@ export async function runSpecKit(rootDirectory, agents, mode, options = {}) {
   }
 
   return { attempted: true, warnings };
+}
+
+export async function cleanupRepoLocalMachineArtifacts(
+  rootDirectory,
+  options = {}
+) {
+  const cleaned = [];
+  const agentsDirectory = path.join(rootDirectory, '.agents');
+
+  if (await exists(agentsDirectory)) {
+    cleaned.push('.agents/');
+    if (!options.dryRun) {
+      await rm(agentsDirectory, { recursive: true, force: true });
+    }
+  }
+
+  return {
+    cleaned,
+    warning:
+      cleaned.length > 0
+        ? 'Spec Kit generated repo-local .agents/; cleaned to preserve global/repo separation'
+        : null
+  };
 }
 
 export async function runInitScript(rootDirectory, options = {}) {
@@ -541,12 +564,9 @@ export async function collectExistingRepoAdapterFiles(rootDirectory, agents) {
 
 async function ensurePrettierIgnore(rootDirectory, options) {
   const target = path.join(rootDirectory, '.prettierignore');
-  const content = [
-    '.agents/',
-    '.claude/skills/',
-    '.specify/',
-    'harness.config.json'
-  ].join('\n');
+  const content = ['.claude/skills/', '.specify/', 'harness.config.json'].join(
+    '\n'
+  );
   appendManagedBlock(target, 'generated-ignore', content, options);
 }
 
